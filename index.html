@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>紅鼻子醫生義賣收銀台</title>
+    <style>
+        :root {
+            --red: #E63946;
+            --white: #FFFFFF;
+            --gray: #F8F9FA;
+            --text: #1D1D1F;
+        }
+
+        body {
+            font-family: -apple-system, "Noto Sans TC", sans-serif;
+            background-color: var(--gray);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: var(--red);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* 商品區佈局 */
+        .container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding-bottom: 220px; /* 預留底部空間 */
+        }
+
+        .item-btn {
+            background: var(--white);
+            border: 1px solid #E0E0E0;
+            border-radius: 15px;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: 0.1s;
+        }
+
+        .item-btn:active {
+            background: #F0F0F0;
+            transform: scale(0.96);
+        }
+
+        .item-name { font-size: 1rem; font-weight: 600; margin-bottom: 5px; text-align: center; }
+        .item-price { font-size: 0.9rem; color: var(--red); }
+
+        /* 結帳面板 */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: white;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .cart-summary {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+            max-height: 40px;
+            overflow-y: auto;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 5px;
+        }
+
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .total-price { font-size: 2rem; font-weight: 800; color: var(--red); }
+
+        .input-area { display: flex; gap: 10px; align-items: center; }
+        input {
+            flex: 1;
+            padding: 12px;
+            font-size: 1.2rem;
+            border: 2px solid #EEE;
+            border-radius: 10px;
+            width: 50%;
+        }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 15px; }
+        button {
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-clear { background: #EEE; color: #666; }
+        .btn-done { background: var(--red); color: white; }
+
+        .change-text { font-size: 1.1rem; font-weight: bold; color: #2A9D8F; }
+    </style>
+</head>
+<body>
+
+<header>🔴 紅鼻子醫生義賣收銀</header>
+
+<div class="container" id="menu">
+    </div>
+
+<div class="footer">
+    <div id="cartDisplay" class="cart-summary">尚未選擇品項</div>
+    
+    <div class="row">
+        <span>應收總計</span>
+        <div class="total-price">NT$ <span id="total">0</span></div>
+    </div>
+
+    <div class="input-area">
+        <input type="number" id="cash" placeholder="輸入實收金額" inputmode="numeric">
+        <div class="change-text">找零: <span id="change">0</span></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-clear" onclick="reset()">歸零</button>
+        <button class="btn-done" onclick="finish()">完成結帳</button>
+    </div>
+</div>
+
+<script>
+    const items = [
+        {n:"手提帆布袋", p:350}, {n:"方巾", p:100}, {n:"長巾", p:150},
+        {n:"紅鼻小孩繪本", p:350}, {n:"著色本", p:250}, {n:"拼圖", p:250},
+        {n:"扭蛋", p:80}, {n:"護手霜-海洋", p:250}, {n:"護手霜-玫瑰", p:250},
+        {n:"手工皂-森林", p:220}, {n:"手工皂-陽光", p:220}, {n:"束口袋", p:150},
+        {n:"小物袋", p:150}, {n:"拇指琴", p:680}, {n:"襪子S", p:180},
+        {n:"襪子M", p:180}, {n:"襪子L", p:180}
+    ];
+
+    let total = 0;
+    let cart = {};
+
+    const menuEl = document.getElementById('menu');
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item-btn';
+        div.innerHTML = `<span class="item-name">${item.n}</span><span class="item-price">$${item.p}</span>`;
+        div.onclick = () => add(item.n, item.p);
+        menuEl.appendChild(div);
+    });
+
+    function add(name, price) {
+        total += price;
+        cart[name] = (cart[name] || 0) + 1;
+        render();
+    }
+
+    function render() {
+        document.getElementById('total').innerText = total;
+        const cartItems = Object.entries(cart).map(([n, q]) => `${n}x${q}`).join(', ');
+        document.getElementById('cartDisplay').innerText = cartItems || "尚未選擇品項";
+        calc();
+    }
+
+    function calc() {
+        const cash = document.getElementById('cash').value;
+        const change = cash ? (cash - total) : 0;
+        document.getElementById('change').innerText = change >= 0 ? change : 0;
+    }
+
+    document.getElementById('cash').addEventListener('input', calc);
+
+    function reset() {
+        if(confirm("確定歸零嗎？")) {
+            total = 0; cart = {}; 
+            document.getElementById('cash').value = '';
+            render();
+        }
+    }
+
+    function finish() {
+        alert(`結帳完成：NT$ ${total}\n感謝支持紅鼻子醫生！`);
+        total = 0; cart = {}; 
+        document.getElementById('cash').value = '';
+        render();
+    }
+</script>
+
+</body>
+</html>
